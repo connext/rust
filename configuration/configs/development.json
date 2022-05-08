@@ -367,7 +367,7 @@
   "agent": {
     "rinkeby": {
       "rpcStyle": "ethereum",
-      "db": "/usr/share/nomad",
+      "db": "db",
       "metrics": 9090,
       "logging": {
         "fmt": "json",
@@ -407,7 +407,7 @@
     },
     "goerli": {
       "rpcStyle": "ethereum",
-      "db": "/usr/share/nomad",
+      "db": "db",
       "metrics": 9090,
       "logging": {
         "fmt": "json",
@@ -447,7 +447,7 @@
     },
     "kovan": {
       "rpcStyle": "ethereum",
-      "db": "/usr/share/nomad",
+      "db": "db",
       "metrics": 9090,
       "logging": {
         "fmt": "json",
@@ -487,7 +487,7 @@
     },
     "evmostestnet": {
       "rpcStyle": "ethereum",
-      "db": "/usr/share/nomad",
+      "db": "db",
       "metrics": 9090,
       "logging": {
         "fmt": "json",
