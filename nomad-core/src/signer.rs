@@ -1,6 +1,7 @@
 use color_eyre::{eyre::bail, Result};
 use ethers_signers::WalletError;
 pub use nomad_types::NomadIdentifier;
+use rusoto_credential::DefaultCredentialsProvider;
 use rusoto_sts::{StsAssumeRoleSessionCredentialsProvider, StsClient};
 use std::convert::Infallible;
 
@@ -15,7 +16,7 @@ use ethers::{
 };
 use nomad_xyz_configuration::agent::SignerConf;
 use once_cell::sync::OnceCell;
-use rusoto_core::{credential::EnvironmentProvider, HttpClient};
+use rusoto_core::HttpClient;
 use rusoto_kms::KmsClient;
 
 static KMS_CLIENT: OnceCell<KmsClient> = OnceCell::new();
@@ -58,11 +59,11 @@ impl From<AwsSigner<'static>> for Signers {
     }
 }
 
-async fn try_aws_from_env(region: &str) {
+async fn try_aws(region: &str) {
     KMS_CLIENT.get_or_init(|| {
         KmsClient::new_with(
             HttpClient::new().unwrap(),
-            EnvironmentProvider::default(),
+            DefaultCredentialsProvider::new().unwrap(),
             region.parse().expect("invalid region"),
         )
     });
@@ -101,7 +102,7 @@ impl Signers {
             SignerConf::Aws { id, region, arn } => {
                 match arn {
                     Some(arn) => try_aws_with_arn(region, arn).await,
-                    None => try_aws_from_env(region).await,
+                    None => try_aws(region).await,
                 };
                 let signer =
                     AwsSigner::new(KMS_CLIENT.get().expect("kms should be initialized"), id, 0)
