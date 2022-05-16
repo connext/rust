@@ -16,6 +16,12 @@ pub enum SignerConf {
         id: String, // change to no _ so we can set by env
         /// The AWS region
         region: String,
+        /// The ARN of a role to assume. If this is specified, the agent will
+        /// attempt to assume this role, and use it to access the KMS. If
+        /// unspecified, the agent will attempt to use environment-inserted
+        /// AWS credentials
+        #[serde(default)]
+        arn: Option<String>,
     },
     /// Assume node will sign on RPC calls
     Node,
@@ -32,7 +38,8 @@ impl FromEnv for SignerConf {
         // ordering this first preferentially uses AWS if both are specified
         if let Ok(id) = std::env::var(&format!("{}_ID", prefix)) {
             if let Ok(region) = std::env::var(&format!("{}_REGION", prefix)) {
-                return Some(SignerConf::Aws { id, region });
+                let arn = std::env::var(&format!("{}_ARN", prefix)).ok();
+                return Some(SignerConf::Aws { id, region, arn });
             }
         }
 
@@ -73,7 +80,8 @@ mod test {
             signer_conf,
             SignerConf::Aws {
                 id: "".to_owned(),
-                region: "".to_owned()
+                region: "".to_owned(),
+                arn: None,
             }
         );
     }

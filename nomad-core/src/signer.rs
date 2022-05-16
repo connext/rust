@@ -1,6 +1,7 @@
 use color_eyre::{eyre::bail, Result};
 use ethers_signers::WalletError;
 pub use nomad_types::NomadIdentifier;
+use rusoto_sts::{StsAssumeRoleSessionCredentialsProvider, StsClient};
 use std::convert::Infallible;
 
 use async_trait::async_trait;
@@ -57,23 +58,54 @@ impl From<AwsSigner<'static>> for Signers {
     }
 }
 
+async fn try_aws_from_env(region: &str) {
+    KMS_CLIENT.get_or_init(|| {
+        KmsClient::new_with(
+            HttpClient::new().unwrap(),
+            EnvironmentProvider::default(),
+            region.parse().expect("invalid region"),
+        )
+    });
+}
+
+async fn try_aws_with_arn(region: &str, arn: &str) {
+    let sts = StsClient::new(region.parse().expect("invalid region"));
+
+    let provider = StsAssumeRoleSessionCredentialsProvider::new(
+        sts,
+        arn.to_owned(),
+        "default".to_owned(),
+        None,
+        None,
+        None,
+        None,
+    );
+
+    let auto_refreshing_provider =
+        rusoto_credential::AutoRefreshingProvider::new(provider).unwrap();
+
+    KMS_CLIENT.get_or_init(|| {
+        KmsClient::new_with(
+            HttpClient::new().unwrap(),
+            auto_refreshing_provider,
+            region.parse().expect("invalid region"),
+        )
+    });
+}
+
 impl Signers {
     /// Try to build Signer from SignerConf object
     pub async fn try_from_signer_conf(conf: &SignerConf) -> Result<Self> {
         match conf {
             SignerConf::HexKey(key) => Ok(Self::Local(key.as_ref().parse()?)),
-            SignerConf::Aws { id, region } => {
-                let client = KMS_CLIENT.get_or_init(|| {
-                    KmsClient::new_with_client(
-                        rusoto_core::Client::new_with(
-                            EnvironmentProvider::default(),
-                            HttpClient::new().unwrap(),
-                        ),
-                        region.parse().expect("invalid region"),
-                    )
-                });
-
-                let signer = AwsSigner::new(client, id, 0).await?;
+            SignerConf::Aws { id, region, arn } => {
+                match arn {
+                    Some(arn) => try_aws_with_arn(region, arn).await,
+                    None => try_aws_from_env(region).await,
+                };
+                let signer =
+                    AwsSigner::new(KMS_CLIENT.get().expect("kms should be initialized"), id, 0)
+                        .await?;
                 Ok(Self::Aws(signer))
             }
             SignerConf::Node => bail!("Node signer"),

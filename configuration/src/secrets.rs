@@ -91,7 +91,7 @@ impl AgentSecrets {
                         network,
                     );
                 }
-                SignerConf::Aws { id, region } => {
+                SignerConf::Aws { id, region, arn: _ } => {
                     eyre::ensure!(!id.is_empty(), "ID for {} aws signer key empty!", network,);
                     eyre::ensure!(
                         !region.is_empty(),
