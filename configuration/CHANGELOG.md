@@ -2,6 +2,7 @@
 
 ### Unreleased
 
+- add STS assumerole configuration to AWS signer
 - fix broken output tests
 - Add Neon testnet to dev and staging configs
 
