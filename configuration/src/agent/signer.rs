@@ -69,6 +69,7 @@ mod test {
         let signer_conf: SignerConf = serde_json::from_value(value).unwrap();
         assert_eq!(signer_conf, SignerConf::Node);
     }
+
     #[test]
     fn it_deserializes_aws_signer_confs() {
         let value = json!({
@@ -82,6 +83,24 @@ mod test {
                 id: "".to_owned(),
                 region: "".to_owned(),
                 arn: None,
+            }
+        );
+    }
+    #[test]
+    fn it_deserializes_aws_signer_confs_with_arn() {
+        let value = json!({
+            "id": "",
+            "region": "",
+            "arn": "",
+        });
+
+        let signer_conf: SignerConf = serde_json::from_value(value).unwrap();
+        assert_eq!(
+            signer_conf,
+            SignerConf::Aws {
+                id: "".to_owned(),
+                region: "".to_owned(),
+                arn: Some("".to_owned()),
             }
         );
     }
